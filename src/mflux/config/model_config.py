@@ -84,9 +84,7 @@ class ModelConfig:
         base_model: Literal["dev", "schnell", "dev-fill"] | None = None,
     ) -> "ModelConfig":
         # 0. Get all base models (where base_model is None) sorted by priority
-        base_models = sorted(
-            [model for model in AVAILABLE_MODELS.values() if model.base_model is None], key=lambda x: x.priority
-        )
+        base_models = sorted([model for model in AVAILABLE_MODELS.values() if model.base_model is None], key=lambda x: x.priority)
 
         # 1. Check if model_name matches any base model's alias or full name
         for base in base_models:
@@ -212,5 +210,49 @@ AVAILABLE_MODELS = {
         supports_guidance=False,
         requires_sigma_shift=False,
         priority=7,
+    ),
+    "xulf-s": ModelConfig(
+        alias="xulf-s",
+        model_name="cocktailpeanut/xulf-s",
+        base_model=None,
+        controlnet_model=None,
+        num_train_steps=1000,
+        max_sequence_length=256,
+        supports_guidance=False,
+        requires_sigma_shift=False,
+        priority=9,
+    ),
+    "xulf-d": ModelConfig(
+        alias="f-lite",
+        model_name="cocktailpeanut/xulf-d",
+        base_model=None,
+        controlnet_model=None,
+        num_train_steps=1000,
+        max_sequence_length=512,
+        supports_guidance=True,
+        requires_sigma_shift=True,
+        priority=8,
+    ),
+    "f-lite": ModelConfig(
+        alias="f-lite",
+        model_name="Freepik/flux.1-lite-8B",
+        base_model=None,
+        controlnet_model=None,
+        num_train_steps=1000,
+        max_sequence_length=512,
+        supports_guidance=True,
+        requires_sigma_shift=True,
+        priority=10,
+    ),
+    "shuttle-3": ModelConfig(
+        alias="shuttle-3",
+        model_name="shuttleai/shuttle-3-diffusion",
+        base_model=None,
+        controlnet_model=None,
+        num_train_steps=1000,
+        max_sequence_length=256,
+        supports_guidance=False,
+        requires_sigma_shift=False,
+        priority=11,
     ),
 }
