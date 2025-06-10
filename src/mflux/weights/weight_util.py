@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import mlx.nn as nn
 
@@ -30,7 +30,7 @@ class WeightUtil:
         vae: nn.Module,
         transformer: nn.Module,
         t5_text_encoder: nn.Module,
-        clip_text_encoder: nn.Module,
+        clip_text_encoder: Optional[nn.Module] = None,
     ) -> int | None:
         if weights.meta_data.quantization_level is None and quantize_arg is None:
             WeightUtil._set_model_weights(weights, vae, transformer, t5_text_encoder, clip_text_encoder)
@@ -39,12 +39,12 @@ class WeightUtil:
         if weights.meta_data.quantization_level is None and quantize_arg is not None:
             bits = quantize_arg
             WeightUtil._set_model_weights(weights, vae, transformer, t5_text_encoder, clip_text_encoder)
-            QuantizationUtil.quantize_model(vae, transformer, t5_text_encoder, clip_text_encoder, bits, weights)  # fmt:off
+            QuantizationUtil.quantize_model(vae, transformer, t5_text_encoder, bits, weights,clip_text_encoder, )  # fmt:off
             return bits
 
         if weights.meta_data.quantization_level is not None:
             bits = weights.meta_data.quantization_level
-            QuantizationUtil.quantize_model(vae, transformer, t5_text_encoder, clip_text_encoder, bits, weights)  # fmt:off
+            QuantizationUtil.quantize_model(vae, transformer, t5_text_encoder, bits, weights,clip_text_encoder, )  # fmt:off
             WeightUtil._set_model_weights(weights, vae, transformer, t5_text_encoder, clip_text_encoder)
             return bits
 
@@ -78,12 +78,13 @@ class WeightUtil:
         vae: nn.Module,
         transformer: nn.Module,
         t5_text_encoder: nn.Module,
-        clip_text_encoder: nn.Module,
+        clip_text_encoder: Optional[nn.Module] = None,
     ):
         vae.update(weights.vae)
         transformer.update(weights.transformer)
         t5_text_encoder.update(weights.t5_encoder)
-        clip_text_encoder.update(weights.clip_encoder)
+        if clip_text_encoder:
+            clip_text_encoder.update(weights.clip_encoder)
 
     @staticmethod
     def _set_redux_model_weights(

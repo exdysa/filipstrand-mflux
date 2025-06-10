@@ -42,13 +42,16 @@ class FluxInitializer:
             max_t5_length=model_config.max_sequence_length,
             local_path=local_path,
         )
+        has_clip = hasattr(tokenizers, "clip")
+
         flux_model.t5_tokenizer = TokenizerT5(
             tokenizer=tokenizers.t5,
             max_length=model_config.max_sequence_length,
         )
-        flux_model.clip_tokenizer = TokenizerCLIP(
-            tokenizer=tokenizers.clip,
-        )
+        if has_clip:
+            flux_model.clip_tokenizer = TokenizerCLIP(
+                tokenizer=tokenizers.clip,
+            )
 
         # 2. Load the regular weights
         weights = WeightHandler.load_regular_weights(
@@ -70,17 +73,20 @@ class FluxInitializer:
             )
 
         flux_model.t5_text_encoder = T5Encoder()
-        flux_model.clip_text_encoder = CLIPEncoder()
+        if has_clip:
+            flux_model.clip_text_encoder = CLIPEncoder()
 
         # 4. Apply weights and quantize the models
-        flux_model.bits = WeightUtil.set_weights_and_quantize(
-            quantize_arg=quantize,
-            weights=weights,
-            vae=flux_model.vae,
-            transformer=flux_model.transformer,
-            t5_text_encoder=flux_model.t5_text_encoder,
-            clip_text_encoder=flux_model.clip_text_encoder,
-        )
+        set_weights_and_quantize_args = {
+            "quantize_arg": quantize,
+            "weights": weights,
+            "vae": flux_model.vae,
+            "transformer": flux_model.transformer,
+            "t5_text_encoder": flux_model.t5_text_encoder,
+        }
+        if has_clip:
+            set_weights_and_quantize_args.setdefault("clip_text_encoder", flux_model.clip_text_encoder)
+        flux_model.bits = WeightUtil.set_weights_and_quantize(**set_weights_and_quantize_args)
 
         # 5. Set LoRA weights
         hf_lora_paths = WeightHandlerLoRAHuggingFace.download_loras(
@@ -182,9 +188,7 @@ class FluxInitializer:
         )
 
         # 2. Apply ControlNet-specific initialization
-        weights_controlnet = WeightHandlerControlnet.load_controlnet_transformer(
-            controlnet_model=model_config.controlnet_model
-        )
+        weights_controlnet = WeightHandlerControlnet.load_controlnet_transformer(controlnet_model=model_config.controlnet_model)
         flux_model.transformer_controlnet = TransformerControlnet(
             model_config=model_config,
             num_transformer_blocks=weights_controlnet.num_transformer_blocks(),

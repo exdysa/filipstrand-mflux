@@ -15,16 +15,24 @@ class TokenizerHandler:
     ):
         root_path = Path(local_path) if local_path else TokenizerHandler._download_or_get_cached_tokenizers(repo_id)
 
-        self.clip = transformers.CLIPTokenizer.from_pretrained(
-            pretrained_model_name_or_path=root_path / "tokenizer",
-            local_files_only=True,
-            max_length=TokenizerCLIP.MAX_TOKEN_LENGTH,
-        )
-        self.t5 = transformers.T5Tokenizer.from_pretrained(
-            pretrained_model_name_or_path=root_path / "tokenizer_2",
-            local_files_only=True,
-            max_length=max_t5_length,
-        )
+        try:
+            self.clip = transformers.CLIPTokenizer.from_pretrained(
+                pretrained_model_name_or_path=root_path / "tokenizer",
+                local_files_only=True,
+                max_length=TokenizerCLIP.MAX_TOKEN_LENGTH,
+            )
+        except TypeError:
+            self.t5 = transformers.T5Tokenizer.from_pretrained(
+                pretrained_model_name_or_path=root_path / "tokenizer",
+                local_files_only=True,
+                max_length=max_t5_length,
+            )
+        else:
+            self.t5 = transformers.T5Tokenizer.from_pretrained(
+                pretrained_model_name_or_path=root_path / "tokenizer_2",
+                local_files_only=True,
+                max_length=max_t5_length,
+            )
 
     @staticmethod
     def _download_or_get_cached_tokenizers(repo_id: str) -> Path:

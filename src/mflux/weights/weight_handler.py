@@ -36,17 +36,18 @@ class WeightHandler:
     def load_regular_weights(
         repo_id: str | None = None,
         local_path: str | None = None,
+        has_clip: bool | None = None,
     ) -> "WeightHandler":
         # Load the weights from disk, huggingface cache, or download from huggingface
-        root_path = Path(local_path) if local_path else WeightHandler._download_or_get_cached_weights(repo_id)
-
-        clip_encoder, _, _ = WeightHandler._load_clip_encoder(root_path=root_path)
-        t5_encoder, _, _ = WeightHandler._load_t5_encoder(root_path=root_path)
+        clip_encoder_args = {}
+        root_path = Path(local_path) if local_path else WeightHandler._download_or_get_cached_weights(repo_id, has_clip=has_clip)
+        if has_clip:
+            clip_encoder, _, _ = WeightHandler._load_clip_encoder(root_path=root_path)
+            clip_encoder_args = {"clip_encoder": clip_encoder}
+        t5_encoder, _, _ = WeightHandler._load_t5_encoder(root_path=root_path, t5_path="text_encoder_2" if has_clip else "text_encoder")
         vae, _, _ = WeightHandler._load_vae(root_path=root_path)
         transformer, quantization_level, mflux_version = WeightHandler.load_transformer(root_path=root_path)
-
         return WeightHandler(
-            clip_encoder=clip_encoder,
             t5_encoder=t5_encoder,
             vae=vae,
             transformer=transformer,
@@ -56,6 +57,7 @@ class WeightHandler:
                 is_lora=False,
                 mflux_version=mflux_version,
             ),
+            **clip_encoder_args,
         )
 
     def num_transformer_blocks(self) -> int:
@@ -70,8 +72,8 @@ class WeightHandler:
         return weights, quantization_level, mflux_version
 
     @staticmethod
-    def _load_t5_encoder(root_path: Path) -> tuple[dict, int, str | None]:
-        weights, quantization_level, mflux_version = WeightHandler.get_weights("text_encoder_2", root_path)
+    def _load_t5_encoder(root_path: Path, t5_path) -> tuple[dict, int, str | None]:
+        weights, quantization_level, mflux_version = WeightHandler.get_weights(t5_path, root_path)
 
         # Quantized weights (i.e. ones exported from this project) don't need any post-processing.
         if quantization_level is not None:
@@ -178,15 +180,16 @@ class WeightHandler:
         return unflatten, quantization_level, mflux_version
 
     @staticmethod
-    def _download_or_get_cached_weights(repo_id: str) -> Path:
+    def _download_or_get_cached_weights(repo_id: str, has_clip: bool) -> Path:
+        text_encoder_2 = {"text_encoder_2/*.safetensors"} if has_clip else {}
         return Path(
             snapshot_download(
                 repo_id=repo_id,
                 allow_patterns=[
                     "text_encoder/*.safetensors",
-                    "text_encoder_2/*.safetensors",
                     "transformer/*.safetensors",
                     "vae/*.safetensors",
                 ],
+                **text_encoder_2,
             )
         )

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import mlx.nn as nn
 
@@ -13,9 +13,9 @@ class QuantizationUtil:
         vae: nn.Module,
         transformer: nn.Module,
         t5_text_encoder: nn.Module,
-        clip_text_encoder: nn.Module,
         quantize: int,
         weights: "WeightHandler",
+        clip_text_encoder: Optional[nn.Module] = None,
     ) -> None:
         q_level = weights.meta_data.quantization_level
 
@@ -24,7 +24,8 @@ class QuantizationUtil:
             nn.quantize(vae, bits=bits)
             nn.quantize(transformer, bits=bits)
             nn.quantize(t5_text_encoder, bits=bits)
-            nn.quantize(clip_text_encoder, bits=bits)
+            if clip_text_encoder:
+                nn.quantize(clip_text_encoder, bits=bits)
 
     @staticmethod
     def quantize_controlnet(
